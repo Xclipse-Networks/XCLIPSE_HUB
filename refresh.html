@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body style="background:#05070a; color:#00f2ff; font-family:monospace; padding:50px;">
+    <h2>CENTURION // TOKEN_EXCHANGE</h2>
+    <input id="cid" placeholder="Client ID" style="width:300px"><br><br>
+    <input id="sec" placeholder="Client Secret" style="width:300px"><br><br>
+    <input id="code" placeholder="Paste the Code You Sent Me Here" style="width:300px"><br><br>
+    <button onclick="exchange()">GET REFRESH TOKEN</button>
+    <pre id="out" style="color:white; margin-top:20px;"></pre>
+
+    <script>
+        async function exchange() {
+            const body = new URLSearchParams({
+                grant_type: 'authorization_code',
+                code: document.getElementById('code').value,
+                redirect_uri: 'http://localhost:8888/callback' // MUST MATCH YOUR DASHBOARD
+            });
+            const res = await fetch('https://accounts.spotify.com/api/token', {
+                method: 'POST',
+                headers: { 'Authorization': 'Basic ' + btoa(document.getElementById('cid').value + ':' + document.getElementById('sec').value),
+                           'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            });
+            const data = await res.json();
+            document.getElementById('out').innerText = JSON.stringify(data, null, 2);
+        }
+    </script>
+</body>
+</html>

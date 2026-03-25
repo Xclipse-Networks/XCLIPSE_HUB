@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>XCLIPSE X THEKIDLEEROY // V17_REDACTED</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@800&display=swap');
+
+        :root {
+            --progress: 0%;
+            --accent: #fff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            background: #000; 
+            color: #fff; 
+            font-family: 'Archivo Black', sans-serif; 
+            height: 100vh; 
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ATMOSPHERIC LAYER */
+        #blur-bg {
+            position: fixed;
+            inset: -10%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(120px) brightness(0.25) saturate(2);
+            z-index: -1;
+            transition: background-image 1.5s ease;
+        }
+
+        /* "SUFFOCATED" LAYOUT GRID */
+        .grid-container {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1.5fr 1fr auto;
+            border: 20px solid #000; /* Brutalist Frame */
+        }
+
+        /* CLOCK & BRANDING SECTION */
+        .time-wrap {
+            grid-column: 1 / 3;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+        }
+
+        #clock {
+            font-size: 18vw;
+            line-height: 0.8;
+            letter-spacing: -1.2vw;
+            text-transform: uppercase;
+        }
+
+        .branding-sub {
+            font-family: 'JetBrains Mono';
+            font-size: 1.2vw;
+            letter-spacing: 1.5vw;
+            color: #fff;
+            margin-top: 10px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            padding-left: 1.5vw; /* Offsets the trailing letter-spacing to center it */
+        }
+
+        .meta-strip {
+            width: 100%;
+            max-width: 90%;
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono';
+            font-size: 12px;
+            margin-top: 30px;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 2px;
+        }
+
+        /* MUSIC SECTION */
+        .music-info {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            border-right: 2px solid rgba(255,255,255,0.1);
+        }
+
+        #track-title { font-size: 4vw; line-height: 1; margin-bottom: 10px; }
+        #artist-name { font-size: 1.2vw; font-family: 'JetBrains Mono'; color: rgba(255,255,255,0.5); letter-spacing: 4px; }
+
+        .art-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        #main-art {
+            width: 100%;
+            max-width: 350px;
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            box-shadow: 0 0 100px rgba(0,0,0,0.8);
+            transition: transform 0.5s ease;
+        }
+
+        /* REACTIVE ANIMATION */
+        .is-playing #main-art {
+            animation: breathe 4s infinite ease-in-out;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.05); filter: brightness(1.2); }
+        }
+
+        /* PROGRESS FOOTER */
+        .footer-ctrl {
+            grid-column: 1 / 3;
+            background: #000;
+            padding: 25px 40px;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            border-top: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .bar-bg { height: 8px; background: #111; position: relative; }
+        .bar-fill { height: 100%; width: var(--progress); background: #fff; transition: width 0.5s linear; }
+
+        .btn-group { display: flex; gap: 40px; justify-content: flex-end; }
+        .c-btn {
+            background: none; border: none; color: #fff;
+            font-family: 'JetBrains Mono'; font-size: 11px;
+            cursor: pointer; opacity: 0.5; transition: 0.3s;
+            letter-spacing: 2px;
+        }
+        .c-btn:hover { opacity: 1; transform: scale(1.05); }
+
+    </style>
+</head>
+<body>
+
+    <div id="blur-bg"></div>
+
+    <div class="grid-container">
+        <div class="time-wrap">
+            <div id="clock">00:00:00</div>
+            <div class="branding-sub">XCLIPSE NETWORKS X THEKIDLEEROY</div>
+            <div class="meta-strip">
+                <span id="date-string">WEDNESDAY_MARCH_25_2026</span>
+                <span>OS_V17.8 // ACTIVE_UPLINK</span>
+            </div>
+        </div>
+
+        <div class="music-info">
+            <div id="track-title">STATION_IDLE</div>
+            <div id="artist-name">WAITING_FOR_DATA</div>
+        </div>
+
+        <div class="art-wrap">
+            <img id="main-art" src="" alt="">
+        </div>
+
+        <div class="footer-ctrl">
+            <div style="font-family: 'JetBrains Mono'; font-size: 10px; opacity: 0.3; letter-spacing: 3px;">
+                SECURE_AUTH
+            </div>
+            
+            <div class="bar-bg">
+                <div class="bar-fill"></div>
+            </div>
+
+            <div class="btn-group">
+                <button class="c-btn" onclick="Spotify.cmd('previous')">PREV</button>
+                <button class="c-btn" onclick="Spotify.cmd('toggle')">PLAY/PAUSE</button>
+                <button class="c-btn" onclick="Spotify.cmd('next')">NEXT</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="spotify.js"></script>
+    <script>
+        function updateClock() {
+            const now = new Date();
+            let h = now.getHours();
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            h = h % 12 || 12;
+            document.getElementById('clock').innerText = `${h}:${m}:${s}`;
+            document.getElementById('date-string').innerText = now.toDateString().toUpperCase().replace(/ /g, "_");
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        setInterval(() => Spotify.sync(), 3000);
+        Spotify.sync();
+    </script>
+</body>
+</html>
