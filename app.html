@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>XCLIPSE // REMOTE</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="XCLIPSE">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@800&display=swap');
+
+        :root {
+            --progress: 0%;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background: #000; 
+            color: #fff; 
+            font-family: 'Archivo Black', sans-serif; 
+            height: 100vh; 
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        /* DYNAMIC BACKGROUND */
+        #blur-bg {
+            position: fixed;
+            inset: -10%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(80px) brightness(0.3) saturate(2.5);
+            z-index: -1;
+            transition: background-image 1s ease;
+        }
+
+        /* TOP BRANDING: FIXED */
+        .header {
+            padding-top: env(safe-area-inset-top);
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            font-family: 'JetBrains Mono';
+            font-size: 10px;
+            letter-spacing: 6px;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+        }
+
+        /* CENTER: ALBUM ART */
+        .art-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 0;
+        }
+
+        #main-art {
+            width: 85vw;
+            height: 85vw;
+            max-width: 400px;
+            max-height: 400px;
+            object-fit: cover;
+            box-shadow: 0 0 60px rgba(0,0,0,0.8);
+            border: 2px solid rgba(255,255,255,0.05);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .playing #main-art { transform: scale(1.05); }
+
+        /* BOTTOM SECTION: SUFFOCATED CONTROLS */
+        .bottom-shelf {
+            padding-bottom: env(safe-area-inset-bottom);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .info { border-left: 4px solid #fff; padding-left: 15px; }
+        #track-title { font-size: 8vw; line-height: 1; margin-bottom: 5px; text-transform: uppercase; }
+        #artist-name { font-family: 'JetBrains Mono'; font-size: 14px; color: rgba(255,255,255,0.4); letter-spacing: 2px; }
+
+        /* PROGRESS */
+        .progress-rail { width: 100%; height: 6px; background: rgba(255,255,255,0.1); position: relative; }
+        #bar { height: 100%; width: var(--progress); background: #fff; transition: width 0.5s linear; }
+
+        /* CONTROL BUTTONS */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .c-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            padding: 25px 0;
+            font-family: 'JetBrains Mono';
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .c-btn:active { background: #fff; color: #000; }
+
+        #play-btn { font-size: 14px; background: #fff; color: #000; }
+
+    </style>
+</head>
+<body>
+
+    <div id="blur-bg"></div>
+
+    <div class="header">
+        <h1>XCLIPSE NETWORKS X THEKIDLEEROY</h1>
+    </div>
+
+    <div class="art-container">
+        <img id="main-art" src="" alt="">
+    </div>
+
+    <div class="bottom-shelf">
+        <div class="info">
+            <div id="track-title">STATION_IDLE</div>
+            <div id="artist-name">WAITING_FOR_UPLINK</div>
+        </div>
+
+        <div class="progress-rail"><div id="bar"></div></div>
+
+        <div class="controls">
+            <button class="c-btn" onclick="Spotify.cmd('previous')">PREV</button>
+            <button class="c-btn" id="play-btn" onclick="Spotify.cmd('toggle')">PLAY</button>
+            <button class="c-btn" onclick="Spotify.cmd('next')">NEXT</button>
+        </div>
+    </div>
+
+    <script src="spotify.js"></script>
+    <script>
+        // High-frequency sync for the remote app
+        setInterval(() => Spotify.sync(), 2500);
+        Spotify.sync();
+    </script>
+</body>
+</html>
