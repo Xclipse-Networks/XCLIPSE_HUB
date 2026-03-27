@@ -1,145 +1,131 @@
-/** * XCLIPSE // DYNAMIC UPLINK ENGINE v2.5
- * Features: User-Auth, Intelligent Auto-Sync, UI Data Mapping
+/** * XCLIPSE // PKCE UPLINK ENGINE v3.0 
+ * Refined for Netlify Deployment & Secure Auth
  */
 
 const Spotify = {
+    clientId: '7b2503df861848f38a509b04f367806d',
+    redirectUri: window.location.origin + window.location.pathname,
     token: localStorage.getItem('spotify_token') || "",
     isPlaying: false,
     progress: 0,
-    timeLeft: 0, // Used by HTML loop for Intelligent Auto-Sync
+    timeLeft: 0,
 
-    // Helper for API communication
-    getHeaders: function() {
-        return {
-            'Authorization': `Bearer ${this.token}`,
-            'Content-Type': 'application/json'
-        };
+    // 1. START AUTH FLOW (PKCE)
+    login: async function() {
+        const encoder = new TextEncoder();
+        const randomValues = window.crypto.getRandomValues(new Uint8Array(32));
+        const codeVerifier = btoa(String.fromCharCode(...randomValues))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+        
+        localStorage.setItem('spot_verifier', codeVerifier);
+
+        const data = encoder.encode(codeVerifier);
+        const hashed = await window.crypto.subtle.digest('SHA-256', data);
+        const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hashed)))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+
+        const params = new URLSearchParams({
+            client_id: this.clientId,
+            response_type: 'code',
+            redirect_uri: this.redirectUri,
+            code_challenge_method: 'S256',
+            code_challenge: codeChallenge,
+            scope: 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private'
+        });
+
+        window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
     },
 
-    // Main Data Sync
+    // 2. EXCHANGE CODE FOR TOKEN
+    getToken: async function(code) {
+        const codeVerifier = localStorage.getItem('spot_verifier');
+
+        const response = await fetch('https://developer.spotify.com/dashboard5', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: this.clientId,
+                grant_type: 'authorization_code',
+                code: code,
+                redirect_uri: this.redirectUri,
+                code_verifier: codeVerifier
+            }),
+        });
+
+        const data = await response.json();
+        if (data.access_token) {
+            this.token = data.access_token;
+            localStorage.setItem('spotify_token', data.access_token);
+            return true;
+        }
+        return false;
+    },
+
+    // 3. CORE SYNC
     sync: async function() {
         if (!this.token) return;
-
         try {
             const res = await fetch('https://api.spotify.com/v1/me/player', {
-                headers: this.getHeaders()
+                headers: { 'Authorization': `Bearer ${this.token}` }
             });
-
-            // Status 204 means "No content" (Player is likely closed/idle)
-            if (res.status === 204) {
-                console.log("PLAYER_IDLE");
-                return;
-            }
 
             if (res.status === 200) {
                 const data = await res.json();
-                
-                // 1. Calculate Timings for Auto-Sync
                 this.isPlaying = data.is_playing;
                 this.progress = (data.progress_ms / data.item.duration_ms) * 100;
                 this.timeLeft = data.item.duration_ms - data.progress_ms;
 
-                // 2. Update UI Elements
                 document.getElementById('track-title').innerText = data.item.name.toUpperCase();
                 document.getElementById('artist-name').innerText = data.item.artists[0].name.toUpperCase();
-                
-                const artUrl = data.item.album.images[0].url;
-                document.getElementById('main-art').src = artUrl;
-                document.getElementById('blur-bg').style.backgroundImage = `url("${artUrl}")`;
-                
-                // 3. Update Progress Bar CSS Variable
+                document.getElementById('main-art').src = data.item.album.images[0].url;
+                document.getElementById('blur-bg').style.backgroundImage = `url("${data.item.album.images[0].url}")`;
                 document.documentElement.style.setProperty('--progress', this.progress + "%");
-                
-                // 4. Update Play/Pause Button State
-                const ppBtn = document.getElementById('play-pause-btn');
-                if (ppBtn) ppBtn.innerText = this.isPlaying ? "PAUSE" : "PLAY";
-
+                document.getElementById('play-pause-btn').innerText = this.isPlaying ? "PAUSE" : "PLAY";
             } else if (res.status === 401) {
-                // Token Expired
-                console.warn("AUTH_EXPIRED: RE-LINK REQUIRED");
-                // localStorage.removeItem('spotify_token');
+                this.token = ""; 
+                localStorage.removeItem('spotify_token');
             }
-        } catch (e) {
-            console.log("UPLINK_OFFLINE");
-        }
+        } catch (e) { console.log("SYNC_IDLE"); }
     },
 
-    // Playback Controls
     cmd: async function(type) {
         if (!this.token) return;
-
         let endpoint = `https://api.spotify.com/v1/me/player/${type}`;
-        let method = (type === 'next' || type === 'previous') ? 'POST' : 'PUT';
-
-        if (type === 'toggle') {
-            endpoint = `https://api.spotify.com/v1/me/player/${this.isPlaying ? 'pause' : 'play'}`;
-            method = 'PUT';
-        }
-
-        try {
-            await fetch(endpoint, {
-                method: method,
-                headers: this.getHeaders()
-            });
-            // Immediate sync after command for responsive feel
-            setTimeout(() => this.sync(), 400);
-        } catch (e) {
-            console.error("CMD_ERROR", e);
-        }
+        if (type === 'toggle') endpoint = `https://api.spotify.com/v1/me/player/${this.isPlaying ? 'pause' : 'play'}`;
+        
+        await fetch(endpoint, {
+            method: (type === 'next' || type === 'previous') ? 'POST' : 'PUT',
+            headers: { 'Authorization': `Bearer ${this.token}` }
+        });
+        setTimeout(() => this.sync(), 400);
     },
 
-    // Playlist Uplink
     loadPlaylists: async function() {
-        if (!this.token) {
-            const container = document.getElementById('playlist-list');
-            if (container) container.innerHTML = '<div class="playlist-item" style="color:var(--accent); font-size:10px;">[ LINK ACCOUNT TO ACCESS ]</div>';
-            return;
-        }
-
-        try {
-            const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=20', {
-                headers: this.getHeaders()
-            });
-            const data = await res.json();
-            
-            const container = document.getElementById('playlist-list');
-            if (!container) return;
-            container.innerHTML = "";
-
-            if (!data.items || data.items.length === 0) {
-                container.innerHTML = '<div class="playlist-item">NO_PLAYLISTS_FOUND</div>';
-                return;
-            }
-
-            data.items.forEach(pl => {
-                const item = document.createElement('div');
-                item.className = 'playlist-item';
-                item.textContent = pl.name.toUpperCase();
-                item.onclick = () => this.playPlaylist(pl.uri);
-                container.appendChild(item);
-            });
-        } catch (e) {
-            console.error("PLAYLIST_UPLINK_ERROR", e);
-        }
+        if (!this.token) return;
+        const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=20', {
+            headers: { 'Authorization': `Bearer ${this.token}` }
+        });
+        const data = await res.json();
+        const container = document.getElementById('playlist-list');
+        container.innerHTML = "";
+        data.items.forEach(pl => {
+            const item = document.createElement('div');
+            item.className = 'playlist-item';
+            item.textContent = pl.name.toUpperCase();
+            item.onclick = () => this.playPlaylist(pl.uri);
+            container.appendChild(item);
+        });
     },
 
-    // Trigger Playback from Playlist
     playPlaylist: async function(uri) {
-        try {
-            await fetch('https://api.spotify.com/v1/me/player/play', {
-                method: 'PUT',
-                headers: this.getHeaders(),
-                body: JSON.stringify({ context_uri: uri })
-            });
-            // Close drawer and sync
-            document.getElementById('playlist-drawer').classList.remove('open');
-            setTimeout(() => this.sync(), 600);
-        } catch (e) {
-            console.error("EXECUTION_ERROR: ENSURE_ACTIVE_DEVICE");
-            alert("Open Spotify on a device first!");
-        }
+        await fetch('https://api.spotify.com/v1/me/player/play', {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${this.token}` },
+            body: JSON.stringify({ context_uri: uri })
+        });
+        document.getElementById('playlist-drawer').classList.remove('open');
+        setTimeout(() => this.sync(), 500);
     }
 };
 
-// Global Uplink
 window.Spotify = Spotify;
