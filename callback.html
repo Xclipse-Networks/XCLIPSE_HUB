@@ -2,52 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XCLIPSE // UPLINK_CALLBACK</title>
+    <title>XCLIPSE // UPLINK_BRIDGE</title>
     <style>
-        body {
-            background: #050505;
-            color: #00ff66;
-            font-family: 'JetBrains Mono', monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            letter-spacing: 2px;
-            font-size: 10px;
-        }
-        .loader {
-            border: 1px solid rgba(0, 255, 102, 0.2);
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.03);
-        }
+        body { background: #050505; color: #00ff66; font-family: 'JetBrains Mono', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; letter-spacing: 2px; font-size: 10px; }
     </style>
 </head>
 <body>
-
-    <div class="loader">> AUTHORIZATION_CODE_DETECTED... REDIRECTING_TO_CORE</div>
-
+    <div id="status">> SECURING_TUNNEL...</div>
     <script>
-        window.onload = function() {
-            // 1. Capture the URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            const error = urlParams.get('error');
-
+        window.onload = () => {
+            const code = new URLSearchParams(window.location.search).get('code');
             if (code) {
-                // 2. Redirect back to your main spotify page with the code attached
-                // Change 'spotify.html' to 'index.html' if that is your main file name
+                // Redirect back to your main page with the code
                 window.location.href = 'spotify.html?code=' + code;
-            } else if (error) {
-                console.error("Auth Error:", error);
-                document.body.innerText = "> AUTH_FAILED: " + error.toUpperCase();
-                setTimeout(() => {
-                    window.location.href = 'spotify.html';
-                }, 3000);
             } else {
-                // No code found, just go home
-                window.location.href = 'spotify.html';
+                document.getElementById('status').innerText = "> AUTH_ERROR: NO_CODE_DETECTED";
+                setTimeout(() => { window.location.href = 'spotify.html'; }, 2000);
             }
         };
     </script>
