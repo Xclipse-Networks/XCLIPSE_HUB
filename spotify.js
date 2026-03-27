@@ -1,117 +1,145 @@
-/** * XCLIPSE // PLAYLIST UPLINK ENGINE
+/** * XCLIPSE // DYNAMIC UPLINK ENGINE v2.5
+ * Features: User-Auth, Intelligent Auto-Sync, UI Data Mapping
  */
 
-const SPOT_CONFIG = {
-    auth: "N2IyNTAzZGY4NjE4NDhmMzhhNTA5YjA0ZjM2NzgwNmQ6NzNlNDY1MDEyMDg0NGQ2YWEwOWYxZWExYWQ2ZjgzZTM=",
-    refresh: "AQDmGChsNKOklRGjxM0CuLHtzNin7vw8NcFbWym0RIAJFk9yfpn7eNHeE8u7fIvVIBZadxzhUyXjYzaUGQV415DsbBRfcmBC0vFYwO2GbNeXSkcOZ7HF3ICX93wH7HRXlYk",
-    token: "",
-    isPlaying: false
+const Spotify = {
+    token: localStorage.getItem('spotify_token') || "",
+    isPlaying: false,
+    progress: 0,
+    timeLeft: 0, // Used by HTML loop for Intelligent Auto-Sync
+
+    // Helper for API communication
+    getHeaders: function() {
+        return {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json'
+        };
+    },
+
+    // Main Data Sync
+    sync: async function() {
+        if (!this.token) return;
+
+        try {
+            const res = await fetch('https://api.spotify.com/v1/me/player', {
+                headers: this.getHeaders()
+            });
+
+            // Status 204 means "No content" (Player is likely closed/idle)
+            if (res.status === 204) {
+                console.log("PLAYER_IDLE");
+                return;
+            }
+
+            if (res.status === 200) {
+                const data = await res.json();
+                
+                // 1. Calculate Timings for Auto-Sync
+                this.isPlaying = data.is_playing;
+                this.progress = (data.progress_ms / data.item.duration_ms) * 100;
+                this.timeLeft = data.item.duration_ms - data.progress_ms;
+
+                // 2. Update UI Elements
+                document.getElementById('track-title').innerText = data.item.name.toUpperCase();
+                document.getElementById('artist-name').innerText = data.item.artists[0].name.toUpperCase();
+                
+                const artUrl = data.item.album.images[0].url;
+                document.getElementById('main-art').src = artUrl;
+                document.getElementById('blur-bg').style.backgroundImage = `url("${artUrl}")`;
+                
+                // 3. Update Progress Bar CSS Variable
+                document.documentElement.style.setProperty('--progress', this.progress + "%");
+                
+                // 4. Update Play/Pause Button State
+                const ppBtn = document.getElementById('play-pause-btn');
+                if (ppBtn) ppBtn.innerText = this.isPlaying ? "PAUSE" : "PLAY";
+
+            } else if (res.status === 401) {
+                // Token Expired
+                console.warn("AUTH_EXPIRED: RE-LINK REQUIRED");
+                // localStorage.removeItem('spotify_token');
+            }
+        } catch (e) {
+            console.log("UPLINK_OFFLINE");
+        }
+    },
+
+    // Playback Controls
+    cmd: async function(type) {
+        if (!this.token) return;
+
+        let endpoint = `https://api.spotify.com/v1/me/player/${type}`;
+        let method = (type === 'next' || type === 'previous') ? 'POST' : 'PUT';
+
+        if (type === 'toggle') {
+            endpoint = `https://api.spotify.com/v1/me/player/${this.isPlaying ? 'pause' : 'play'}`;
+            method = 'PUT';
+        }
+
+        try {
+            await fetch(endpoint, {
+                method: method,
+                headers: this.getHeaders()
+            });
+            // Immediate sync after command for responsive feel
+            setTimeout(() => this.sync(), 400);
+        } catch (e) {
+            console.error("CMD_ERROR", e);
+        }
+    },
+
+    // Playlist Uplink
+    loadPlaylists: async function() {
+        if (!this.token) {
+            const container = document.getElementById('playlist-list');
+            if (container) container.innerHTML = '<div class="playlist-item" style="color:var(--accent); font-size:10px;">[ LINK ACCOUNT TO ACCESS ]</div>';
+            return;
+        }
+
+        try {
+            const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=20', {
+                headers: this.getHeaders()
+            });
+            const data = await res.json();
+            
+            const container = document.getElementById('playlist-list');
+            if (!container) return;
+            container.innerHTML = "";
+
+            if (!data.items || data.items.length === 0) {
+                container.innerHTML = '<div class="playlist-item">NO_PLAYLISTS_FOUND</div>';
+                return;
+            }
+
+            data.items.forEach(pl => {
+                const item = document.createElement('div');
+                item.className = 'playlist-item';
+                item.textContent = pl.name.toUpperCase();
+                item.onclick = () => this.playPlaylist(pl.uri);
+                container.appendChild(item);
+            });
+        } catch (e) {
+            console.error("PLAYLIST_UPLINK_ERROR", e);
+        }
+    },
+
+    // Trigger Playback from Playlist
+    playPlaylist: async function(uri) {
+        try {
+            await fetch('https://api.spotify.com/v1/me/player/play', {
+                method: 'PUT',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ context_uri: uri })
+            });
+            // Close drawer and sync
+            document.getElementById('playlist-drawer').classList.remove('open');
+            setTimeout(() => this.sync(), 600);
+        } catch (e) {
+            console.error("EXECUTION_ERROR: ENSURE_ACTIVE_DEVICE");
+            alert("Open Spotify on a device first!");
+        }
+    }
 };
 
-async function getAccessToken() {
-    try {
-        const res = await fetch('https://accounts.spotify.com/api/token', {
-            method: 'POST',
-            headers: { 
-                'Authorization': 'Basic ' + SPOT_CONFIG.auth, 
-                'Content-Type': 'application/x-www-form-urlencoded' 
-            },
-            body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: SPOT_CONFIG.refresh })
-        });
-        const data = await res.json();
-        SPOT_CONFIG.token = data.access_token;
-        console.log("AUTH_REFRESHED");
-    } catch (e) { console.error("AUTH_ERROR", e); }
-}
-
-async function loadPlaylists() {
-    if (!SPOT_CONFIG.token) await getAccessToken();
-    
-    console.log("FETCHING_PLAYLISTS...");
-    try {
-        // Updated to the correct endpoint for "My Playlists"
-        const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
-            headers: { 'Authorization': 'Bearer ' + SPOT_CONFIG.token }
-        });
-
-        const container = document.getElementById('playlist-list');
-        if (!container) return;
-
-        if (res.status === 403) {
-            console.error("SCOPE_ERROR: Your token lacks playlist-read permissions.");
-            container.innerHTML = '<div class="playlist-item" style="color:red; font-size:12px;">ERROR: RE-AUTH REQUIRED (SCOPES)</div>';
-            return;
-        }
-
-        const data = await res.json();
-        container.innerHTML = ""; 
-
-        if (!data.items || data.items.length === 0) {
-            container.innerHTML = '<div class="playlist-item">NO_DATA_FOUND</div>';
-            return;
-        }
-
-        data.items.forEach(pl => {
-            const item = document.createElement('div');
-            item.className = 'playlist-item';
-            item.textContent = pl.name.toUpperCase();
-            item.onclick = () => playPlaylist(pl.uri);
-            container.appendChild(item);
-        });
-        console.log("PLAYLISTS_RENDERED");
-    } catch (e) {
-        console.error("LOAD_ERROR", e);
-    }
-}
-
-async function playPlaylist(uri) {
-    try {
-        await fetch('https://api.spotify.com/v1/me/player/play', {
-            method: 'PUT',
-            headers: { 'Authorization': 'Bearer ' + SPOT_CONFIG.token },
-            body: JSON.stringify({ context_uri: uri })
-        });
-        const drawer = document.getElementById('playlist-drawer');
-        if(drawer) drawer.classList.remove('open');
-        setTimeout(sync, 500);
-    } catch (e) { console.error("PLAY_ERROR", e); }
-}
-
-async function sync() {
-    if (!SPOT_CONFIG.token) await getAccessToken();
-    try {
-        const res = await fetch('https://api.spotify.com/v1/me/player', {
-            headers: { 'Authorization': 'Bearer ' + SPOT_CONFIG.token }
-        });
-        if (res.status === 200) {
-            const data = await res.json();
-            SPOT_CONFIG.isPlaying = data.is_playing;
-            document.getElementById('track-title').innerText = data.item.name.toUpperCase();
-            document.getElementById('artist-name').innerText = data.item.artists[0].name.toUpperCase();
-            document.getElementById('main-art').src = data.item.album.images[0].url;
-            document.getElementById('blur-bg').style.backgroundImage = `url("${data.item.album.images[0].url}")`;
-            
-            const pct = (data.progress_ms / data.item.duration_ms) * 100;
-            document.documentElement.style.setProperty('--progress', pct + "%");
-            document.getElementById('play-pause-btn').innerText = SPOT_CONFIG.isPlaying ? "PAUSE" : "PLAY";
-        }
-    } catch (e) { console.log("SYNC_IDLE"); }
-}
-
-async function cmd(type) {
-    let endpoint = `https://api.spotify.com/v1/me/player/${type}`;
-    let method = (type === 'next' || type === 'previous') ? 'POST' : 'PUT';
-
-    if (type === 'toggle') {
-        endpoint = `https://api.spotify.com/v1/me/player/${SPOT_CONFIG.isPlaying ? 'pause' : 'play'}`;
-        method = 'PUT';
-    }
-
-    await fetch(endpoint, {
-        method: method,
-        headers: { 'Authorization': 'Bearer ' + SPOT_CONFIG.token }
-    });
-    setTimeout(sync, 400);
-}
-
-window.Spotify = { sync, cmd, loadPlaylists };
+// Global Uplink
+window.Spotify = Spotify;
