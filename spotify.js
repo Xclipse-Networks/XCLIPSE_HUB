@@ -4,8 +4,10 @@
 
 const Spotify = {
     clientId: '7b2503df861848f38a509b04f367806d',
-    redirectUri: window.location.origin + window.location.pathname,
+    // Hardcode this to match your Spotify Dashboard EXACTLY
+    redirectUri: 'https://xclipsehub.netlify.app/spotify', 
     token: localStorage.getItem('spotify_token') || "",
+    // ... rest of the code
     isPlaying: false,
     progress: 0,
     timeLeft: 0,
