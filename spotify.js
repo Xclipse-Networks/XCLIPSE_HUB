@@ -1,29 +1,31 @@
-/** * XCLIPSE // PKCE UPLINK ENGINE v3.0 
- * Refined for Netlify Deployment & Secure Auth
+/** * XCLIPSE // ENHANCED PKCE CORE v4.0 
+ * Optimized for: https://xclipsehub.netlify.app/callback
  */
 
 const Spotify = {
     clientId: '7b2503df861848f38a509b04f367806d',
-    // Hardcode this to match your Spotify Dashboard EXACTLY
-    redirectUri: 'https://xclipsehub.netlify.app/spotify', 
+    redirectUri: 'https://xclipsehub.netlify.app/callback', 
     token: localStorage.getItem('spotify_token') || "",
-    // ... rest of the code
     isPlaying: false,
     progress: 0,
     timeLeft: 0,
 
-    // 1. START AUTH FLOW (PKCE)
+    // SESSION TERMINATION
+    logout: function() {
+        localStorage.removeItem('spotify_token');
+        localStorage.removeItem('spot_verifier');
+        window.location.href = window.location.origin + window.location.pathname;
+    },
+
+    // PKCE GENERATION
     login: async function() {
-        const encoder = new TextEncoder();
-        const randomValues = window.crypto.getRandomValues(new Uint8Array(32));
-        const codeVerifier = btoa(String.fromCharCode(...randomValues))
+        const verifier = btoa(String.fromCharCode(...window.crypto.getRandomValues(new Uint8Array(32))))
             .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
         
-        localStorage.setItem('spot_verifier', codeVerifier);
+        localStorage.setItem('spot_verifier', verifier);
 
-        const data = encoder.encode(codeVerifier);
-        const hashed = await window.crypto.subtle.digest('SHA-256', data);
-        const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hashed)))
+        const sha256 = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+        const challenge = btoa(String.fromCharCode(...new Uint8Array(sha256)))
             .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 
         const params = new URLSearchParams({
@@ -31,39 +33,49 @@ const Spotify = {
             response_type: 'code',
             redirect_uri: this.redirectUri,
             code_challenge_method: 'S256',
-            code_challenge: codeChallenge,
+            code_challenge: challenge,
             scope: 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private'
         });
 
         window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
     },
 
-    // 2. EXCHANGE CODE FOR TOKEN
+    // TOKEN UPLINK
     getToken: async function(code) {
-        const codeVerifier = localStorage.getItem('spot_verifier');
-
-        const response = await fetch('https://developer.spotify.com/dashboard5', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                client_id: this.clientId,
-                grant_type: 'authorization_code',
-                code: code,
-                redirect_uri: this.redirectUri,
-                code_verifier: codeVerifier
-            }),
-        });
-
-        const data = await response.json();
-        if (data.access_token) {
-            this.token = data.access_token;
-            localStorage.setItem('spotify_token', data.access_token);
-            return true;
-        }
+        const verifier = localStorage.getItem('spot_verifier');
+        try {
+            const res = await fetch('https://developer.spotify.com/dashboard5', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    client_id: this.clientId,
+                    grant_type: 'authorization_code',
+                    code: code,
+                    redirect_uri: this.redirectUri,
+                    code_verifier: verifier
+                }),
+            });
+            const data = await res.json();
+            if (data.access_token) {
+                this.token = data.access_token;
+                localStorage.setItem('spotify_token', data.access_token);
+                return true;
+            }
+        } catch (e) { console.error("AUTH_ERROR", e); }
         return false;
     },
 
-    // 3. CORE SYNC
+    getUserProfile: async function() {
+        if (!this.token) return null;
+        try {
+            const res = await fetch('https://developer.spotify.com/dashboard7', {
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            return res.ok ? await res.json() : null;
+        } catch (e) { return null; }
+    },
+
+    // RECTIVE ENGINE
     sync: async function() {
         if (!this.token) return;
         try {
@@ -77,17 +89,14 @@ const Spotify = {
                 this.progress = (data.progress_ms / data.item.duration_ms) * 100;
                 this.timeLeft = data.item.duration_ms - data.progress_ms;
 
-                document.getElementById('track-title').innerText = data.item.name.toUpperCase();
-                document.getElementById('artist-name').innerText = data.item.artists[0].name.toUpperCase();
+                document.getElementById('track-title').innerText = data.item.name;
+                document.getElementById('artist-name').innerText = data.item.artists[0].name;
                 document.getElementById('main-art').src = data.item.album.images[0].url;
                 document.getElementById('blur-bg').style.backgroundImage = `url("${data.item.album.images[0].url}")`;
                 document.documentElement.style.setProperty('--progress', this.progress + "%");
-                document.getElementById('play-pause-btn').innerText = this.isPlaying ? "PAUSE" : "PLAY";
-            } else if (res.status === 401) {
-                this.token = ""; 
-                localStorage.removeItem('spotify_token');
-            }
-        } catch (e) { console.log("SYNC_IDLE"); }
+                document.getElementById('play-pause-btn').innerText = this.isPlaying ? "PAUSE_SYSTEM" : "RESUME_SYSTEM";
+            } else if (res.status === 401) { this.logout(); }
+        } catch (e) { console.warn("SIGNAL_IDLE"); }
     },
 
     cmd: async function(type) {
@@ -103,17 +112,16 @@ const Spotify = {
     },
 
     loadPlaylists: async function() {
-        if (!this.token) return;
         const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=20', {
             headers: { 'Authorization': `Bearer ${this.token}` }
         });
         const data = await res.json();
         const container = document.getElementById('playlist-list');
         container.innerHTML = "";
-        data.items.forEach(pl => {
+        data.items.slice(0, 15).forEach(pl => {
             const item = document.createElement('div');
             item.className = 'playlist-item';
-            item.textContent = pl.name.toUpperCase();
+            item.textContent = "> " + pl.name.toUpperCase();
             item.onclick = () => this.playPlaylist(pl.uri);
             container.appendChild(item);
         });
