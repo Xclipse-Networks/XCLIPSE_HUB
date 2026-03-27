@@ -38,16 +38,8 @@
             align-items: center;
             transition: transform 0.8s cubic-bezier(0.8, 0, 0.2, 1);
         }
-
         #boot-screen.loaded { transform: translateY(-100%); }
-
-        #boot-log {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
+        #boot-log { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--accent); letter-spacing: 2px; }
 
         /* BACKGROUND */
         #blur-bg { 
@@ -61,137 +53,44 @@
         }
 
         /* NAVIGATION */
-        nav {
-            width: 100%;
-            padding: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-        }
+        nav { width: 100%; padding: 30px; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+        .nav-btn { font-family: 'JetBrains Mono'; font-size: 10px; letter-spacing: 2px; cursor: pointer; border: 1px solid var(--border); padding: 10px 20px; background: var(--glass); backdrop-filter: blur(10px); }
+        #user-status { font-family: 'JetBrains Mono'; font-size: 9px; color: #ff4444; letter-spacing: 2px; padding: 10px 15px; background: rgba(0,0,0,0.3); border-right: 2px solid #ff4444; }
 
-        .nav-btn { 
-            font-family: 'JetBrains Mono'; 
-            font-size: 10px; 
-            font-weight: 800;
-            letter-spacing: 2px; 
-            cursor: pointer; 
-            border: 1px solid var(--border); 
-            padding: 10px 20px;
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            transition: 0.3s;
-        }
-
-        .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-        #user-status {
-            font-family: 'JetBrains Mono';
-            font-size: 9px;
-            color: #ff4444;
-            letter-spacing: 2px;
-            padding: 10px 15px;
-            background: rgba(0,0,0,0.3);
-            border-right: 2px solid #ff4444;
-        }
-
-        /* DRAWER SYSTEM */
-        #playlist-drawer {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.98);
-            backdrop-filter: blur(50px);
-            z-index: 110;
-            transform: translateX(100%);
-            transition: 0.5s cubic-bezier(0.8, 0, 0.2, 1);
-            padding: 80px 40px;
-            overflow-y: auto;
-        }
-
+        /* DRAWER */
+        #playlist-drawer { position: fixed; inset: 0; background: rgba(0,0,0,0.98); backdrop-filter: blur(50px); z-index: 110; transform: translateX(100%); transition: 0.5s cubic-bezier(0.8, 0, 0.2, 1); padding: 80px 40px; overflow-y: auto; }
         #playlist-drawer.open { transform: translateX(0); }
+        .link-btn { display: inline-block; padding: 15px 25px; background: var(--accent); color: #000; font-family: 'JetBrains Mono'; font-weight: 800; cursor: pointer; border: none; width: 100%; }
+        .playlist-item { padding: 18px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 16px; cursor: pointer; color: rgba(255,255,255,0.4); }
 
-        .drawer-header {
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .link-btn {
-            display: inline-block;
-            padding: 15px 25px;
-            background: var(--accent);
-            color: #000;
-            font-family: 'JetBrains Mono';
-            font-weight: 800;
-            text-align: center;
-            cursor: pointer;
-            letter-spacing: 1px;
-            border: none;
-        }
-
-        .logout-link {
-            font-family: 'JetBrains Mono';
-            font-size: 10px;
-            color: #ff4444;
-            cursor: pointer;
-            text-decoration: underline;
-            margin-top: 20px;
-            display: inline-block;
-        }
-
-        .playlist-item {
-            padding: 18px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
-            font-size: 16px; 
-            letter-spacing: 2px;
-            cursor: pointer;
-            transition: 0.3s;
-            color: rgba(255,255,255,0.4);
-        }
-
-        .playlist-item:hover { color: var(--accent); padding-left: 10px; }
+        /* VISUALIZER */
+        #v-container { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 4px; height: 40px; z-index: 10; }
+        .v-bar { width: 3px; background: var(--accent); height: 2px; transition: height 0.15s ease; box-shadow: 0 0 10px var(--accent); }
 
         /* GRID CONTENT */
-        .grid-container { 
-            flex-grow: 1; 
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 40px;
-        }
+        .grid-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 40px; }
+        .art-frame { position: relative; padding: 10px; border: 1px solid var(--border); background: var(--glass); }
+        #main-art { width: 75vw; max-width: 340px; aspect-ratio: 1; object-fit: cover; }
 
-        .art-frame {
-            position: relative;
-            padding: 10px;
-            border: 1px solid var(--border);
-            background: var(--glass);
-        }
-
-        #main-art { 
-            width: 75vw; 
-            max-width: 340px; 
-            aspect-ratio: 1; 
-            object-fit: cover;
-            filter: contrast(1.1);
+        /* GLITCH ANIMATION */
+        .glitch { animation: glitch 0.3s height; }
+        @keyframes glitch {
+            0% { transform: translate(0); filter: hue-rotate(0deg); }
+            20% { transform: translate(-5px, 5px); filter: hue-rotate(90deg); }
+            40% { transform: translate(5px, -5px); }
+            100% { transform: translate(0); filter: hue-rotate(0deg); }
         }
 
         .music-meta { text-align: center; }
-        #track-title { font-size: 22px; letter-spacing: 4px; margin-bottom: 8px; text-transform: uppercase; }
-        #artist-name { font-size: 10px; font-family: 'JetBrains Mono'; color: var(--accent); letter-spacing: 6px; opacity: 0.5; }
+        #track-title { font-size: 22px; letter-spacing: 4px; margin-bottom: 8px; }
+        #artist-name { font-size: 10px; font-family: 'JetBrains Mono'; color: var(--accent); letter-spacing: 6px; }
 
         /* FOOTER */
         .footer-ctrl { width: 100%; padding: 40px; border-top: 1px solid var(--border); }
         .bar-bg { height: 1px; background: rgba(255,255,255,0.05); width: 100%; margin-bottom: 25px; position: relative; }
-        .bar-fill { height: 100%; width: var(--progress); background: var(--accent); position: absolute; transition: 0.4s linear; box-shadow: 0 0 10px var(--accent); }
-
+        .bar-fill { height: 100%; width: var(--progress); background: var(--accent); position: absolute; transition: 0.4s linear; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; width: 100%; }
-        .c-btn { background: none; border: none; color: #fff; font-family: 'JetBrains Mono'; font-size: 10px; cursor: pointer; opacity: 0.4; transition: 0.3s; }
-        .c-btn:hover { opacity: 1; color: var(--accent); }
-        #play-pause-btn { font-size: 14px; opacity: 1; border: 1px solid var(--border); padding: 10px; }
+        .c-btn { background: none; border: none; color: #fff; font-family: 'JetBrains Mono'; font-size: 10px; cursor: pointer; opacity: 0.4; }
     </style>
 </head>
 <body>
@@ -205,52 +104,44 @@
     </nav>
 
     <div id="playlist-drawer">
-        <div class="drawer-header">
-            <h2 style="font-family: 'JetBrains Mono'; font-size: 12px; letter-spacing: 5px;">UPLINK_SETTINGS</h2>
-            <span class="nav-btn" onclick="toggleNav()">CLOSE_X</span>
-        </div>
-        
-        <div id="auth-section">
-            <div class="link-btn" id="login-trigger" onclick="Spotify.login()">INITIATE_AUTH</div>
-        </div>
-
+        <div id="auth-section"><div class="link-btn" id="login-trigger" onclick="Spotify.login()">INITIATE_AUTH</div></div>
         <div id="playlist-list"></div>
-
-        <div id="logout-section" style="display:none;">
-            <span class="logout-link" onclick="Spotify.logout()">> TERMINATE_SESSION</span>
+        <div id="logout-section" style="display:none; margin-top:30px;">
+            <span style="color:#ff4444; font-family:'JetBrains Mono'; cursor:pointer; font-size:10px;" onclick="Spotify.logout()">> TERMINATE_SESSION</span>
         </div>
+        <div class="nav-btn" onclick="toggleNav()" style="margin-top: 40px; width: 100%; text-align:center;">CLOSE_X</div>
     </div>
 
     <div class="grid-container">
-        <div class="art-frame">
+        <div class="art-frame" id="art-holder">
+            <div id="v-container">
+                <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
+                <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
+                <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
+            </div>
             <img id="main-art" src="">
         </div>
         <div class="music-meta">
             <div id="track-title">SIGNAL_LOST</div>
-            <div id="artist-name">AWAITING_UPLINK_KEY</div>
+            <div id="artist-name">AWAITING_UPLINK</div>
         </div>
     </div>
 
     <div class="footer-ctrl">
         <div class="bar-bg"><div class="bar-fill"></div></div>
         <div class="btn-group">
-            <button class="c-btn" onclick="Spotify.cmd('previous')">PREVIOUS</button>
-            <button class="c-btn" id="play-pause-btn" onclick="Spotify.cmd('toggle')">PLAY</button>
+            <button class="c-btn" onclick="Spotify.cmd('previous')">PREV</button>
+            <button class="c-btn" id="play-pause-btn" onclick="Spotify.cmd('toggle')">RESUME</button>
             <button class="c-btn" onclick="Spotify.cmd('next')">NEXT</button>
         </div>
     </div>
 
     <script src="spotify.js"></script>
     <script>
-        function toggleNav() {
-            document.getElementById('playlist-drawer').classList.toggle('open');
-            if (Spotify.token) Spotify.loadPlaylists();
-        }
+        function toggleNav() { document.getElementById('playlist-drawer').classList.toggle('open'); if(Spotify.token) Spotify.loadPlaylists(); }
 
         async function init() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            
+            const code = new URLSearchParams(window.location.search).get('code');
             if (code) {
                 document.getElementById('boot-log').innerText = "> SYNCHRONIZING_TOKEN...";
                 await Spotify.getToken(code);
@@ -260,11 +151,8 @@
             if (Spotify.token) {
                 const user = await Spotify.getUserProfile();
                 if (user) {
-                    const badge = document.getElementById('user-status');
-                    badge.style.color = "var(--accent)";
-                    badge.style.borderRightColor = "var(--accent)";
-                    badge.innerText = "● " + user.display_name.toUpperCase();
-                    
+                    document.getElementById('user-status').style.color = "var(--accent)";
+                    document.getElementById('user-status').innerText = "● " + user.display_name.toUpperCase();
                     document.getElementById('login-trigger').style.display = 'none';
                     document.getElementById('logout-section').style.display = 'block';
                 }
@@ -278,7 +166,6 @@
             };
             mainLoop();
         }
-
         window.onload = init;
     </script>
 </body>
