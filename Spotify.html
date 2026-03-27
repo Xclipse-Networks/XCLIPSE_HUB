@@ -2,68 +2,239 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>XCLIPSE // CORE_ENGINE</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;800&display=swap');
-        :root { --accent: #00ff66; --bg-dark: #050505; --progress: 0%; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg-dark); color: #fff; font-family: 'Archivo Black', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        :root {
+            --accent: #00ff66; 
+            --bg-dark: #050505;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --progress: 0%;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        #boot-screen { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; justify-content: center; align-items: center; transition: 0.8s; }
+        body { 
+            background: var(--bg-dark); 
+            color: #fff; 
+            font-family: 'Archivo Black', sans-serif; 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+        }
+
+        /* BOOT OVERLAY */
+        #boot-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.8s cubic-bezier(0.8, 0, 0.2, 1);
+        }
+
         #boot-screen.loaded { transform: translateY(-100%); }
-        #boot-log { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--accent); letter-spacing: 2px; }
 
-        #blur-bg { position: fixed; inset: -20%; background-size: cover; filter: blur(80px) brightness(0.4); z-index: -1; transition: 1.5s; }
-        
-        nav { padding: 30px; display: flex; justify-content: space-between; align-items: center; }
-        .nav-btn { font-family: 'JetBrains Mono'; font-size: 11px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); padding: 12px 24px; background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); }
+        #boot-log {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
 
-        #playlist-drawer { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; transform: scale(1.1); opacity: 0; visibility: hidden; transition: 0.4s; padding: 100px 40px; }
-        #playlist-drawer.open { transform: scale(1); opacity: 1; visibility: visible; }
-        
-        .link-btn { display: block; width: 100%; padding: 15px; background: var(--accent); color: #000; font-family: 'JetBrains Mono'; font-weight: 800; text-align: center; cursor: pointer; margin-bottom: 30px; }
-        .playlist-item { padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); cursor: pointer; }
-        .playlist-item:hover { color: var(--accent); }
+        /* BACKGROUND */
+        #blur-bg { 
+            position: fixed; 
+            inset: -20%; 
+            background-size: cover; 
+            background-position: center;
+            filter: blur(80px) brightness(0.35); 
+            z-index: -1; 
+            transition: 1.5s cubic-bezier(0.2, 1, 0.3, 1);
+        }
 
-        .grid-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 40px; }
-        #main-art { width: 80vw; max-width: 350px; aspect-ratio: 1; border-radius: 20px; box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
+        /* NAVIGATION */
+        nav {
+            width: 100%;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .nav-btn { 
+            font-family: 'JetBrains Mono'; 
+            font-size: 10px; 
+            font-weight: 800;
+            letter-spacing: 2px; 
+            cursor: pointer; 
+            border: 1px solid var(--border); 
+            padding: 10px 20px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            transition: 0.3s;
+        }
+
+        .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        #user-status {
+            font-family: 'JetBrains Mono';
+            font-size: 9px;
+            color: #ff4444;
+            letter-spacing: 2px;
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.3);
+            border-right: 2px solid #ff4444;
+        }
+
+        /* DRAWER SYSTEM */
+        #playlist-drawer {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.98);
+            backdrop-filter: blur(50px);
+            z-index: 110;
+            transform: translateX(100%);
+            transition: 0.5s cubic-bezier(0.8, 0, 0.2, 1);
+            padding: 80px 40px;
+            overflow-y: auto;
+        }
+
+        #playlist-drawer.open { transform: translateX(0); }
+
+        .drawer-header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .link-btn {
+            display: inline-block;
+            padding: 15px 25px;
+            background: var(--accent);
+            color: #000;
+            font-family: 'JetBrains Mono';
+            font-weight: 800;
+            text-align: center;
+            cursor: pointer;
+            letter-spacing: 1px;
+            border: none;
+        }
+
+        .logout-link {
+            font-family: 'JetBrains Mono';
+            font-size: 10px;
+            color: #ff4444;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 20px;
+            display: inline-block;
+        }
+
+        .playlist-item {
+            padding: 18px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 16px; 
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .playlist-item:hover { color: var(--accent); padding-left: 10px; }
+
+        /* GRID CONTENT */
+        .grid-container { 
+            flex-grow: 1; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .art-frame {
+            position: relative;
+            padding: 10px;
+            border: 1px solid var(--border);
+            background: var(--glass);
+        }
+
+        #main-art { 
+            width: 75vw; 
+            max-width: 340px; 
+            aspect-ratio: 1; 
+            object-fit: cover;
+            filter: contrast(1.1);
+        }
+
         .music-meta { text-align: center; }
-        #track-title { font-size: 24px; letter-spacing: 2px; }
-        #artist-name { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--accent); margin-top: 10px; }
+        #track-title { font-size: 22px; letter-spacing: 4px; margin-bottom: 8px; text-transform: uppercase; }
+        #artist-name { font-size: 10px; font-family: 'JetBrains Mono'; color: var(--accent); letter-spacing: 6px; opacity: 0.5; }
 
-        .footer-ctrl { width: 100%; padding: 40px; }
-        .bar-bg { height: 2px; background: rgba(255,255,255,0.1); width: 100%; }
-        .bar-fill { height: 100%; width: var(--progress); background: var(--accent); transition: 0.4s linear; }
-        .btn-group { display: flex; justify-content: space-between; margin-top: 20px; }
-        .c-btn { background: none; border: none; color: #fff; font-family: 'JetBrains Mono'; cursor: pointer; opacity: 0.6; }
+        /* FOOTER */
+        .footer-ctrl { width: 100%; padding: 40px; border-top: 1px solid var(--border); }
+        .bar-bg { height: 1px; background: rgba(255,255,255,0.05); width: 100%; margin-bottom: 25px; position: relative; }
+        .bar-fill { height: 100%; width: var(--progress); background: var(--accent); position: absolute; transition: 0.4s linear; box-shadow: 0 0 10px var(--accent); }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; width: 100%; }
+        .c-btn { background: none; border: none; color: #fff; font-family: 'JetBrains Mono'; font-size: 10px; cursor: pointer; opacity: 0.4; transition: 0.3s; }
+        .c-btn:hover { opacity: 1; color: var(--accent); }
+        #play-pause-btn { font-size: 14px; opacity: 1; border: 1px solid var(--border); padding: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="boot-screen"><div id="boot-log">> SYSTEM_BOOTING...</div></div>
+    <div id="boot-screen"><div id="boot-log">> XCLIPSE_CORE_BOOT...</div></div>
     <div id="blur-bg"></div>
 
-    <nav><span class="nav-btn" onclick="toggleNav()">PLAYLISTS</span></nav>
+    <nav>
+        <span class="nav-btn" onclick="toggleNav()">// MENU</span>
+        <div id="user-status">● OFFLINE</div>
+    </nav>
 
     <div id="playlist-drawer">
-        <div class="link-btn" onclick="Spotify.login()">// LINK_SPOTIFY_ACCOUNT</div>
+        <div class="drawer-header">
+            <h2 style="font-family: 'JetBrains Mono'; font-size: 12px; letter-spacing: 5px;">UPLINK_SETTINGS</h2>
+            <span class="nav-btn" onclick="toggleNav()">CLOSE_X</span>
+        </div>
+        
+        <div id="auth-section">
+            <div class="link-btn" id="login-trigger" onclick="Spotify.login()">INITIATE_AUTH</div>
+        </div>
+
         <div id="playlist-list"></div>
-        <div class="nav-btn" onclick="toggleNav()" style="margin-top: 20px; text-align: center;">CLOSE</div>
+
+        <div id="logout-section" style="display:none;">
+            <span class="logout-link" onclick="Spotify.logout()">> TERMINATE_SESSION</span>
+        </div>
     </div>
 
     <div class="grid-container">
-        <img id="main-art" src="">
+        <div class="art-frame">
+            <img id="main-art" src="">
+        </div>
         <div class="music-meta">
-            <div id="track-title">OFFLINE</div>
-            <div id="artist-name">AWAITING_UPLINK</div>
+            <div id="track-title">SIGNAL_LOST</div>
+            <div id="artist-name">AWAITING_UPLINK_KEY</div>
         </div>
     </div>
 
     <div class="footer-ctrl">
         <div class="bar-bg"><div class="bar-fill"></div></div>
         <div class="btn-group">
-            <button class="c-btn" onclick="Spotify.cmd('previous')">PREV</button>
+            <button class="c-btn" onclick="Spotify.cmd('previous')">PREVIOUS</button>
             <button class="c-btn" id="play-pause-btn" onclick="Spotify.cmd('toggle')">PLAY</button>
             <button class="c-btn" onclick="Spotify.cmd('next')">NEXT</button>
         </div>
@@ -72,28 +243,40 @@
     <script src="spotify.js"></script>
     <script>
         function toggleNav() {
-            const dr = document.getElementById('playlist-drawer');
-            if(dr.classList.toggle('open')) Spotify.loadPlaylists();
+            document.getElementById('playlist-drawer').classList.toggle('open');
+            if (Spotify.token) Spotify.loadPlaylists();
         }
 
         async function init() {
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
+            
             if (code) {
-                document.getElementById('boot-log').innerText = "> EXCHANGE_TOKEN...";
+                document.getElementById('boot-log').innerText = "> SYNCHRONIZING_TOKEN...";
                 await Spotify.getToken(code);
                 window.history.pushState({}, document.title, window.location.pathname);
             }
             
-            setTimeout(() => document.getElementById('boot-screen').classList.add('loaded'), 1000);
+            if (Spotify.token) {
+                const user = await Spotify.getUserProfile();
+                if (user) {
+                    const badge = document.getElementById('user-status');
+                    badge.style.color = "var(--accent)";
+                    badge.style.borderRightColor = "var(--accent)";
+                    badge.innerText = "● " + user.display_name.toUpperCase();
+                    
+                    document.getElementById('login-trigger').style.display = 'none';
+                    document.getElementById('logout-section').style.display = 'block';
+                }
+            }
             
-            // Auto-Sync Loop
-            const syncLoop = async () => {
+            setTimeout(() => document.getElementById('boot-screen').classList.add('loaded'), 1500);
+            
+            const mainLoop = async () => {
                 await Spotify.sync();
-                let wait = (Spotify.timeLeft < 10000 && Spotify.isPlaying) ? 1000 : 3000;
-                setTimeout(syncLoop, wait);
+                setTimeout(mainLoop, (Spotify.timeLeft < 10000 && Spotify.isPlaying) ? 1000 : 4000);
             };
-            syncLoop();
+            mainLoop();
         }
 
         window.onload = init;
