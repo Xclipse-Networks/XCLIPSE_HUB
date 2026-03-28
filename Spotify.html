@@ -12,6 +12,8 @@
             --bg-dark: #050505;
             --glass: rgba(255, 255, 255, 0.03);
             --border: rgba(255, 255, 255, 0.08);
+            --bg-intensity: 0.35;
+            --bg-saturate: 1.8;
             --progress: 0%;
         }
 
@@ -34,139 +36,393 @@
             background: #000;
             z-index: 999;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            transition: transform 0.8s cubic-bezier(0.8, 0, 0.2, 1);
+            padding: 40px;
+            font-family: 'JetBrains Mono', monospace;
+            transition: transform 0.8s cubic-bezier(0.8, 0, 0.2, 1), opacity 0.5s ease;
         }
-        #boot-screen.loaded { transform: translateY(-100%); }
-        #boot-log { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--accent); letter-spacing: 2px; }
+
+        #boot-screen.loaded {
+            transform: translateY(-100%);
+            pointer-events: none;
+        }
+
+        #boot-log {
+            font-size: 10px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .log-line { margin-bottom: 5px; opacity: 0; transform: translateX(-10px); }
+        .log-line.visible { opacity: 1; transform: translateX(0); transition: 0.1s; }
 
         /* BACKGROUND */
         #blur-bg { 
             position: fixed; 
             inset: -20%; 
-            background-size: cover; 
+            background-size: 140%; 
             background-position: center;
-            filter: blur(80px) brightness(0.35); 
+            filter: blur(80px) brightness(var(--bg-intensity)) saturate(var(--bg-saturate)); 
             z-index: -1; 
-            transition: 1.5s cubic-bezier(0.2, 1, 0.3, 1);
+            transition: 1.5s cubic-bezier(0.2, 1, 0.3, 1), filter 0.5s linear;
+            animation: drift 30s ease-in-out infinite alternate;
+        }
+
+        @keyframes drift {
+            from { transform: scale(1) rotate(0deg); }
+            to { transform: scale(1.1) rotate(2deg); }
         }
 
         /* NAVIGATION */
-        nav { width: 100%; padding: 30px; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
-        .nav-btn { font-family: 'JetBrains Mono'; font-size: 10px; letter-spacing: 2px; cursor: pointer; border: 1px solid var(--border); padding: 10px 20px; background: var(--glass); backdrop-filter: blur(10px); }
-        #user-status { font-family: 'JetBrains Mono'; font-size: 9px; color: #ff4444; letter-spacing: 2px; padding: 10px 15px; background: rgba(0,0,0,0.3); border-right: 2px solid #ff4444; }
-
-        /* DRAWER */
-        #playlist-drawer { position: fixed; inset: 0; background: rgba(0,0,0,0.98); backdrop-filter: blur(50px); z-index: 110; transform: translateX(100%); transition: 0.5s cubic-bezier(0.8, 0, 0.2, 1); padding: 80px 40px; overflow-y: auto; }
-        #playlist-drawer.open { transform: translateX(0); }
-        .link-btn { display: inline-block; padding: 15px 25px; background: var(--accent); color: #000; font-family: 'JetBrains Mono'; font-weight: 800; cursor: pointer; border: none; width: 100%; }
-        .playlist-item { padding: 18px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 16px; cursor: pointer; color: rgba(255,255,255,0.4); }
-
-        /* VISUALIZER */
-        #v-container { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 4px; height: 40px; z-index: 10; }
-        .v-bar { width: 3px; background: var(--accent); height: 2px; transition: height 0.15s ease; box-shadow: 0 0 10px var(--accent); }
-
-        /* GRID CONTENT */
-        .grid-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 40px; }
-        .art-frame { position: relative; padding: 10px; border: 1px solid var(--border); background: var(--glass); }
-        #main-art { width: 75vw; max-width: 340px; aspect-ratio: 1; object-fit: cover; }
-
-        /* GLITCH ANIMATION */
-        .glitch { animation: glitch 0.3s height; }
-        @keyframes glitch {
-            0% { transform: translate(0); filter: hue-rotate(0deg); }
-            20% { transform: translate(-5px, 5px); filter: hue-rotate(90deg); }
-            40% { transform: translate(5px, -5px); }
-            100% { transform: translate(0); filter: hue-rotate(0deg); }
+        nav {
+            width: 100%;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
         }
 
-        .music-meta { text-align: center; }
-        #track-title { font-size: 22px; letter-spacing: 4px; margin-bottom: 8px; }
-        #artist-name { font-size: 10px; font-family: 'JetBrains Mono'; color: var(--accent); letter-spacing: 6px; }
+        .nav-btn { 
+            font-family: 'JetBrains Mono'; 
+            font-size: 11px; 
+            font-weight: 800;
+            letter-spacing: 4px; 
+            cursor: pointer; 
+            border: 1px solid var(--border); 
+            padding: 12px 24px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 4px;
+            transition: 0.3s;
+        }
+
+        .nav-btn:hover { 
+            border-color: var(--accent); 
+            color: var(--accent); 
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3);
+        }
+
+        #clock { 
+            font-family: 'Archivo Black', sans-serif; 
+            font-size: 38px; 
+            line-height: 1;
+            letter-spacing: -1px;
+            background: linear-gradient(to bottom, #fff, rgba(255,255,255,0.2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        /* PLAYLIST DRAWER */
+        #playlist-drawer {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(50px);
+            z-index: 110;
+            transform: scale(1.1);
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 100px 40px;
+            overflow-y: auto;
+        }
+
+        #playlist-drawer.open { 
+            transform: scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        /* AUTH BUTTON */
+        .auth-container {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .link-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: var(--accent);
+            color: #000;
+            font-family: 'JetBrains Mono';
+            font-weight: 800;
+            font-size: 10px;
+            text-align: center;
+            text-decoration: none;
+            letter-spacing: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .link-btn:hover { box-shadow: 0 0 20px var(--accent); }
+
+        .playlist-item {
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 18px; 
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+        }
+
+        .playlist-item:hover { color: var(--accent); padding-left: 15px; }
+
+        /* CONTENT */
+        .grid-container { 
+            flex-grow: 1; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .art-wrapper {
+            position: relative;
+            padding: 12px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            transition: 0.5s transform cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+        }
+
+        .art-wrapper::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.6;
+        }
+
+        #main-art { 
+            width: 82vw; 
+            max-width: 360px; 
+            aspect-ratio: 1; 
+            border-radius: 30px;
+            object-fit: cover;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+            animation: artFlicker 8s infinite;
+        }
+
+        .music-meta { text-align: center; padding: 0 40px; }
+
+        #track-title { 
+            font-size: 3vw; 
+            line-height: 1.2; 
+            margin-bottom: 8px; 
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        #artist-name { 
+            font-size: 10px; 
+            font-family: 'JetBrains Mono'; 
+            color: var(--accent);
+            letter-spacing: 6px; 
+            opacity: 0.5;
+        }
 
         /* FOOTER */
-        .footer-ctrl { width: 100%; padding: 40px; border-top: 1px solid var(--border); }
-        .bar-bg { height: 1px; background: rgba(255,255,255,0.05); width: 100%; margin-bottom: 25px; position: relative; }
-        .bar-fill { height: 100%; width: var(--progress); background: var(--accent); position: absolute; transition: 0.4s linear; }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; width: 100%; }
-        .c-btn { background: none; border: none; color: #fff; font-family: 'JetBrains Mono'; font-size: 10px; cursor: pointer; opacity: 0.4; }
+        .footer-ctrl { 
+            background: transparent;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        }
+
+        .bar-bg { 
+            height: 2px; 
+            background: rgba(255,255,255,0.05); 
+            width: 100%; 
+            margin-bottom: 10px;
+        }
+        
+        .bar-fill { 
+            height: 100%; 
+            width: var(--progress, 0%); 
+            background: var(--accent); 
+            box-shadow: 0 0 15px var(--accent);
+            transition: 0.4s linear; 
+        }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 1.5fr 1fr; width: 100%; }
+
+        .c-btn { 
+            background: none; 
+            border: none; 
+            color: #fff; 
+            font-family: 'JetBrains Mono'; 
+            font-size: 11px; 
+            font-weight: 800;
+            padding: 30px 0; 
+            cursor: pointer; 
+            transition: 0.3s;
+            opacity: 0.4;
+        }
+
+        .c-btn:active { opacity: 1; color: var(--accent); }
+
+        #play-pause-btn { font-size: 20px; opacity: 1; }
     </style>
 </head>
 <body>
 
-    <div id="boot-screen"><div id="boot-log">> XCLIPSE_CORE_BOOT...</div></div>
+    <div id="boot-screen">
+        <div id="boot-log"></div>
+    </div>
+
     <div id="blur-bg"></div>
 
     <nav>
-        <span class="nav-btn" onclick="toggleNav()">// MENU</span>
-        <div id="user-status">● OFFLINE</div>
+        <span class="nav-btn" onclick="toggleNav()">PLAYLISTS</span>
+        <div id="clock">12:00 AM</div>
     </nav>
 
     <div id="playlist-drawer">
-        <div id="auth-section"><div class="link-btn" id="login-trigger" onclick="Spotify.login()">INITIATE_AUTH</div></div>
-        <div id="playlist-list"></div>
-        <div id="logout-section" style="display:none; margin-top:30px;">
-            <span style="color:#ff4444; font-family:'JetBrains Mono'; cursor:pointer; font-size:10px;" onclick="Spotify.logout()">> TERMINATE_SESSION</span>
+        <div class="drawer-header">
+            <h2 style="font-size: 10px; font-family: 'JetBrains Mono'; letter-spacing: 8px; color: var(--accent);">// UPLINK_DIRECTORY</h2>
+            <span class="close-btn" onclick="toggleNav()">[ CLOSE_X ]</span>
         </div>
-        <div class="nav-btn" onclick="toggleNav()" style="margin-top: 40px; width: 100%; text-align:center;">CLOSE_X</div>
+
+        <div class="auth-container">
+            <div class="link-btn" onclick="loginToSpotify()">// LINK_SPOTIFY_ACCOUNT</div>
+        </div>
+
+        <div id="playlist-list"></div>
     </div>
 
     <div class="grid-container">
-        <div class="art-frame" id="art-holder">
-            <div id="v-container">
-                <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
-                <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
-                <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
-            </div>
-            <img id="main-art" src="">
+        <div class="art-wrapper" id="art-container">
+            <img id="main-art" src="" alt="">
         </div>
-        <div class="music-meta">
-            <div id="track-title">SIGNAL_LOST</div>
-            <div id="artist-name">AWAITING_UPLINK</div>
-        </div>
-    </div>
 
-    <div class="footer-ctrl">
-        <div class="bar-bg"><div class="bar-fill"></div></div>
-        <div class="btn-group">
-            <button class="c-btn" onclick="Spotify.cmd('previous')">PREV</button>
-            <button class="c-btn" id="play-pause-btn" onclick="Spotify.cmd('toggle')">RESUME</button>
-            <button class="c-btn" onclick="Spotify.cmd('next')">NEXT</button>
+        <div class="music-meta">
+            <div id="track-title">STATION_IDLE</div>
+            <div id="artist-name">AWAITING_SIGNAL</div>
+        </div>
+
+        <div class="footer-ctrl">
+            <div class="bar-bg"><div class="bar-fill"></div></div>
+            <div class="btn-group">
+                <button class="c-btn" onclick="Spotify.cmd('previous')">PREV</button>
+                <button class="c-btn" id="play-pause-btn" onclick="Spotify.cmd('toggle')">PLAY</button>
+                <button class="c-btn" onclick="Spotify.cmd('next')">NEXT</button>
+            </div>
         </div>
     </div>
 
     <script src="spotify.js"></script>
     <script>
-        function toggleNav() { document.getElementById('playlist-drawer').classList.toggle('open'); if(Spotify.token) Spotify.loadPlaylists(); }
+        // CONFIG
+        const CLIENT_ID = '7b2503df861848f38a509b04f367806d';
+        const REDIRECT_URI = window.location.origin + window.location.pathname;
+        const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private';
 
-        async function init() {
-            const code = new URLSearchParams(window.location.search).get('code');
-            if (code) {
-                document.getElementById('boot-log').innerText = "> SYNCHRONIZING_TOKEN...";
-                await Spotify.getToken(code);
-                window.history.pushState({}, document.title, window.location.pathname);
-            }
-            
-            if (Spotify.token) {
-                const user = await Spotify.getUserProfile();
-                if (user) {
-                    document.getElementById('user-status').style.color = "var(--accent)";
-                    document.getElementById('user-status').innerText = "● " + user.display_name.toUpperCase();
-                    document.getElementById('login-trigger').style.display = 'none';
-                    document.getElementById('logout-section').style.display = 'block';
-                }
-            }
-            
-            setTimeout(() => document.getElementById('boot-screen').classList.add('loaded'), 1500);
-            
-            const mainLoop = async () => {
-                await Spotify.sync();
-                setTimeout(mainLoop, (Spotify.timeLeft < 10000 && Spotify.isPlaying) ? 1000 : 4000);
-            };
-            mainLoop();
+        function loginToSpotify() {
+            const url = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=token&show_dialog=true`;
+            window.location.href = url;
         }
-        window.onload = init;
+
+        // AUTH CHECK
+        function checkAuth() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            const token = params.get('access_token');
+            if (token) {
+                localStorage.setItem('spotify_token', token);
+                window.history.pushState("", document.title, window.location.pathname);
+                if(typeof Spotify !== 'undefined') Spotify.token = token;
+            }
+        }
+
+        // BOOT SEQUENCE
+        const logs = ["> INITIALIZING XCLIPSE_OS...", "> KERNEL LOADED", "> FETCHING_UPLINK...", "> SYSTEM_READY."];
+        function runBoot() {
+            const container = document.getElementById('boot-log');
+            logs.forEach((text, i) => {
+                setTimeout(() => {
+                    const line = document.createElement('div');
+                    line.className = 'log-line';
+                    line.innerText = text;
+                    container.appendChild(line);
+                    setTimeout(() => line.classList.add('visible'), 50);
+                }, i * 400);
+            });
+            setTimeout(() => document.getElementById('boot-screen').classList.add('loaded'), 2000);
+        }
+
+        // NAVIGATION
+        function toggleNav() {
+            const drawer = document.getElementById('playlist-drawer');
+            if(drawer.classList.toggle('open') && typeof Spotify !== 'undefined') {
+                Spotify.loadPlaylists();
+            }
+        }
+
+        function updateClock() {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}).toUpperCase();
+        }
+
+        // INTELLIGENT AUTO-SYNC
+        let syncThrottle = 3000; 
+        function autoSyncLoop() {
+            if (typeof Spotify !== 'undefined' && Spotify.sync) {
+                Spotify.sync().then(() => {
+                    // If track is ending soon (last 10s), speed up sync to 1s
+                    // We check Spotify.timeLeft (needs to be calculated in your .js)
+                    syncThrottle = (Spotify.timeLeft < 10000 && Spotify.isPlaying) ? 1000 : 3000;
+                    setTimeout(autoSyncLoop, syncThrottle);
+                });
+            } else {
+                setTimeout(autoSyncLoop, 3000);
+            }
+        }
+
+        // REACTIVITY
+        function updateVisuals() {
+            if (typeof Spotify !== 'undefined' && Spotify.isPlaying) {
+                const prog = Spotify.progress || 0;
+                const intensity = 0.35 + (prog / 100) * 0.2;
+                document.documentElement.style.setProperty('--bg-intensity', intensity);
+                // Pulse Artwork
+                const art = document.getElementById('art-container');
+                art.style.transform = "scale(1.01)";
+                setTimeout(() => art.style.transform = "scale(1)", 1000);
+            }
+        }
+
+        window.onload = () => {
+            checkAuth();
+            runBoot();
+            updateClock();
+            setInterval(updateClock, 1000);
+            setInterval(updateVisuals, 2000);
+            autoSyncLoop();
+        }
     </script>
 </body>
 </html>
